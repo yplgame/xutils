@@ -1,29 +1,63 @@
-/**
- * 上海蓝鸟集团
- * 上海蓝鸟科技股份有限公司
- * 华东工程中心（无锡）
- * 2015版权所有
- */
-package org.xdemo.app.xutils.j2se;
+package org.xdemo.app.xutils.j2se.hardware;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.file.FileStore;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-/**
- * 
- * @author Goofy
- * @Date 2015年7月7日 下午3:52:56
- */
+import org.xdemo.app.xutils.ext.GsonTools;
+
+import oshi.SystemInfo;
+import oshi.hardware.CentralProcessor;
+import oshi.hardware.GlobalMemory;
+import oshi.hardware.HardwareAbstractionLayer;
+
 public class HardwareUtils {
 
+	/**
+	 * 获取磁盘用量
+	 * 
+	 * @return
+	 * @throws IOException
+	 */
+	public static List<HardDisk> getHardDisk() throws IOException {
+		List<HardDisk> ret = new ArrayList<HardDisk>();
+		for (Path root : FileSystems.getDefault().getRootDirectories()) {
+			HardDisk disk = new HardDisk();
+			FileStore store = Files.getFileStore(root);
+			disk.setTotal(store.getTotalSpace());
+			disk.setAvailable(store.getUsableSpace());
+			disk.setName(root.toString());
+			ret.add(disk);
+		}
+		return ret;
+	}
+	
+	/**
+	 * 获取系统内存
+	 * @return
+	 */
+	public static Memory getMemory() {
+		SystemInfo sys = new SystemInfo();
+		HardwareAbstractionLayer hal = sys.getHardware();
+		CentralProcessor cpu = hal.getProcessor();
+		GlobalMemory gm = hal.getMemory();
+		return new Memory(gm.getAvailable(), gm.getTotal());
+	}
+	
 	/**
 	 * 获取主板序列号
 	 * 
@@ -145,6 +179,12 @@ public class HardwareUtils {
 		return sb.toString().toUpperCase();
 	}
 
+	/**
+	 * 获取所有网卡的IP V4地址
+	 * @param ipv4
+	 * @return
+	 * @throws UnknownHostException
+	 */
 	public static Set<String> ip(boolean ipv4) throws UnknownHostException{
 		InetAddress addr = InetAddress.getLocalHost();
 		InetAddress[] ips = InetAddress.getAllByName(addr.getHostName());
@@ -160,8 +200,8 @@ public class HardwareUtils {
 		return ipv4?v4:v6;
 	}
 
-	public static void main(String[] args) throws UnknownHostException, SocketException {
-		System.out.println(ip(false));
+	public static void main(String[] args) throws IOException, InterruptedException {
+		List<HardDisk> list = getHardDisk();
+		System.out.println(GsonTools.toJson(list));
 	}
-
 }
